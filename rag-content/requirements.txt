@@ -1,0 +1,12 @@
+langchain
+langchain_community
+pypdf
+chromadb
+faiss-cpu
+bs4
+python-dotenv
+openai
+langchain-openai
+nest_asyncio
+flask
+gpt4all
