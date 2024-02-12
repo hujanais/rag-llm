@@ -21,7 +21,7 @@ raq = RAQ(llm)
 
 # curl --location 'http://127.0.01:5000/context' --data ["https://hujanais.github.io", "https://hujanais.github.io/edge-llm"]
 # request-body : [ "1", "2", "3", "4"]
-@app.route('/context', methods=['POST'])
+@app.route('/api/context', methods=['POST'])
 def create_context():
     try:
         urls = request.get_json()
@@ -33,7 +33,7 @@ def create_context():
 
 # curl --location 'http://127.0.01:5000/llm' --data '{ "query": "Can you summarize some of the technologies mentioned?" }'
 # request-body: { query: "What is the major topic that the author is writing about?"}
-@app.route('/llm', methods=['POST'])
+@app.route('/api/llm', methods=['POST'])
 def doLLM():
     try:
         # get the user query
