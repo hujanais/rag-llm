@@ -4,7 +4,9 @@ from langchain_openai import ChatOpenAI
 from langchain_community.llms import Ollama
 load_dotenv()
 
-from rag import RAQ
+from rag import RAG
+from rag_pdf import RAG_PDF
+
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -17,9 +19,10 @@ llm = ChatOpenAI(openai_api_key = apiKey, model_name = 'gpt-3.5-turbo', temperat
 # Ollama
 # llm = Ollama(base_url='http://localhost:11434', model='llama2')
 
-raq = RAQ(llm)
+raq = RAG(llm)
+raqPdf = RAG_PDF(llm)
 
-# curl --location 'http://127.0.01:5000/context' --data ["https://hujanais.github.io", "https://hujanais.github.io/edge-llm"]
+# curl --location 'http://127.0.01:5000/api/context' --data ["https://hujanais.github.io", "https://hujanais.github.io/edge-llm"]
 # request-body : [ "1", "2", "3", "4"]
 @app.route('/api/context', methods=['POST'])
 def create_context():
@@ -31,7 +34,7 @@ def create_context():
     except Exception as e:
         return jsonify({'data': None, 'error': f'{e}'})
 
-# curl --location 'http://127.0.01:5000/llm' --data '{ "query": "Can you summarize some of the technologies mentioned?" }'
+# curl --location 'http://127.0.01:5000/api/llm' --data '{ "query": "Can you summarize some of the technologies mentioned?" }'
 # request-body: { query: "What is the major topic that the author is writing about?"}
 @app.route('/api/llm', methods=['POST'])
 def doLLM():
@@ -42,6 +45,22 @@ def doLLM():
         query = json['query']
 
         response = raq.doLLM(query)
+        
+        return jsonify({'data': response, 'error': None})
+    except Exception as e:
+        return jsonify({'data': None, 'error': f'{e}'})
+
+# curl --location 'http://127.0.01:5000/api/llm-proposal' --data '{ "query": "Can you summarize some of the technologies mentioned?" }'
+# request-body: { query: "What is the major topic that the author is writing about?"}
+@app.route('/api/llm-pdf', methods=['POST'])
+def doLLM_PDF():
+    try:
+        # get the user query
+        # { query : "Given the context, can you tell me what are some of the main topics discussed in the website."
+        json = request.get_json()
+        query = json['query']
+
+        response = raqPdf.doLLM(query)
         
         return jsonify({'data': response, 'error': None})
     except Exception as e:

@@ -3,6 +3,7 @@ langchain_community
 pypdf
 chromadb
 faiss-cpu
+pypdf
 bs4
 python-dotenv
 openai
