@@ -14,6 +14,7 @@ app = Flask(__name__)
 # Create the llm of your choice.
 # ChatGPT
 apiKey = os.environ["OPENAI_KEY"]
+PORT = int(os.environ.get('PORT', 5000))
 llm = ChatOpenAI(openai_api_key = apiKey, model_name = 'gpt-3.5-turbo', temperature=0.1)
 
 # Ollama
@@ -50,7 +51,7 @@ def doLLM():
     except Exception as e:
         return jsonify({'data': None, 'error': f'{e}'})
 
-# curl --location 'http://127.0.01:5000/api/llm-proposal' --data '{ "query": "Can you summarize some of the technologies mentioned?" }'
+# curl --location 'http://127.0.01:5000/api/llm-pdf' --data '{ "query": "Can you summarize some of the technologies mentioned?" }'
 # request-body: { query: "What is the major topic that the author is writing about?"}
 @app.route('/api/llm-pdf', methods=['POST'])
 def doLLM_PDF():
@@ -66,5 +67,9 @@ def doLLM_PDF():
     except Exception as e:
         return jsonify({'data': None, 'error': f'{e}'})
 
+@app.route('/api', methods=['GET'])
+def doLLM_Test():
+    return jsonify({'data': 'hello', 'error': None})
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=PORT)

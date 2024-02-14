@@ -9,5 +9,5 @@ python-dotenv
 openai
 langchain-openai
 nest_asyncio
-flask
 gpt4all
+flask

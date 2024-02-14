@@ -42,7 +42,7 @@ deactivate # destroy virtual environment when done
 ### Running with Docker
 There server has also been setup with Docker support for easier deployment.
 ```
-docker run -d -p 5000:5000 -e OPENAI_KEY=YOUR-OPENAI_API_KEY --name rag-llm [IMAGEID]
+docker run -d -p 5050:5000 -e OPENAI_KEY=YOUR-OPENAI_API_KEY --name rag-llm [IMAGEID]
 ```
 
 > Written with [StackEdit](https://stackedit.io/).
