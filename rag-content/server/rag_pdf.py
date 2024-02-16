@@ -12,6 +12,7 @@ class RAG_PDF:
         self.vectorstore = None
         self.llm = llm
         self.isPDFLoaded = False
+        self.db = None
         pass
 
     # Perform the LLM
@@ -38,8 +39,8 @@ class RAG_PDF:
         # load index from disk
         # https://github.com/langchain-ai/langchain/issues/7175
         # we somehow still need to set pass the embedding_function even if we are just loading
-        db = FAISS.load_local('faiss_index_pdf', GPT4AllEmbeddings())
-        retriever = db.as_retriever()
+        # db = FAISS.load_local('faiss_index_pdf', GPT4AllEmbeddings())
+        retriever = self.db.as_retriever()
 
         # Build the langchain
         chain = (
@@ -75,15 +76,15 @@ class RAG_PDF:
 
         # reset database
         # delete all the ids one by one.
-        try:
-            db = FAISS.load_local('faiss_index_pdf', GPT4AllEmbeddings())
-            count = len(db.index_to_docstore_id)
-            for _ in range(count):
-                print(f'deleting {db.index_to_docstore_id[0]}')
-                db.delete([db.index_to_docstore_id[0]])
-        except:
-            print('faiss_index_pdf does not exist')
+        # try:
+        #     db = FAISS.load_local('faiss_index_pdf', GPT4AllEmbeddings())
+        #     count = len(db.index_to_docstore_id)
+        #     for _ in range(count):
+        #         print(f'deleting {db.index_to_docstore_id[0]}')
+        #         db.delete([db.index_to_docstore_id[0]])
+        # except:
+        #     print('faiss_index_pdf does not exist')
 
         # embed documents into vector database.
-        db = FAISS.from_documents(documents, GPT4AllEmbeddings())
-        db.save_local('faiss_index_pdf')
+        self.db = FAISS.from_documents(documents, GPT4AllEmbeddings())
+        # db.save_local('faiss_index_pdf')
