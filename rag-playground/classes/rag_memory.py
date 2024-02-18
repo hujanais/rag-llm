@@ -1,3 +1,6 @@
+from operator import itemgetter
+from colorama import Fore, Back, Style
+from classes.qa_memory import QAMemory
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import GPT4AllEmbeddings
@@ -5,16 +8,19 @@ from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import FAISS
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import (RunnablePassthrough, RunnableParallel)
 
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import LLMChain, ConversationalRetrievalChain, ConversationChain
-from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+from langchain.chains import LLMChain, ConversationChain
+from langchain.chains.conversation.memory import (ConversationBufferMemory, 
+                                                  ConversationSummaryMemory, 
+                                                  ConversationBufferWindowMemory,
+                                                  ConversationSummaryBufferMemory)
 
 class RagWithMemory:
     def __init__(self, llm):
         self.db = None
         self.llm = llm
+        self.memory = QAMemory(6)
 
     def loadPdf(self):
         # load document.
@@ -40,9 +46,11 @@ class RagWithMemory:
     def doLLM(self, query):
 
         # Prompt Template
-        template = """You are a useful assistant that can help me analyze and summarize documents. Answer questions succinctly based only on the following context:
+        template = """You are a useful and jovial assistant that can help me analyze and summarize documents. Answer questions based only on the following context:
         {context}
 
+        Current conversation:
+        {history}
         Question: {question}
         """
         prompt = ChatPromptTemplate.from_template(template)
@@ -52,45 +60,62 @@ class RagWithMemory:
         # Build the langchain
         chain = (
             {
-                "context": retriever,
-                "question": RunnablePassthrough(),
-            }  # context and question tags must match that in the PromptTemplate
+                "context": itemgetter("question") | retriever,
+                "question": itemgetter("question"),
+                "history": itemgetter("history"),
+            }
             | prompt
             | self.llm
             | StrOutputParser()
         )
 
-        from langchain.chains.conversation.memory import ConversationSummaryMemory
+        result = chain.invoke({"question": query, "history": self.memory.getHistory()})
 
-        conversation = ConversationChain(
-            llm=self.llm, memory=ConversationBufferWindowMemory(k=2),
-            verbose=True
+        # update the conversation history
+        self.memory.add(query, result)
+
+        return [self.memory.getHistory(), result]
+
+    def chat(self, llm, query):
+        resp = self.conversation.invoke(query)
+
+        bufw_history = self.conversation.memory.load_memory_variables(
+            inputs=[]
+        )['history']
+
+        print('')
+        print(Fore.RED + bufw_history)
+        print(Style.RESET_ALL)
+        print('')
+
+        return resp
+    
+    def test(self):
+        vectorstore = FAISS.from_texts( ["harrison worked at kensho"], embedding=GPT4AllEmbeddings())
+        retriever = vectorstore.as_retriever()
+
+        template = """Answer the question based only on the following context:
+        {context}
+
+        Question: {question}
+
+        Answer in the following language: {language}
+        """
+        prompt = ChatPromptTemplate.from_template(template)
+
+        setup_and_retrieval = RunnableParallel(
+            {"context": retriever, "question": RunnablePassthrough()}
         )
 
-        chain_with_memory = chain | conversation
+        chain = (
+            {
+                "context": itemgetter("question") | retriever,
+                "question": itemgetter("question"),
+                "language": itemgetter("language"),
+            }
+            | prompt
+            | self.llm
+            | StrOutputParser()
+        )
 
-        # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-        # chain = ConversationalRetrievalChain.from_llm(llm=self.llm, retriever=retriever, memory=memory, verbose=True)
-
-        # question_generator_chain = LLMChain(llm=self.llm, prompt=prompt)
-        # chain = ConversationalRetrievalChain.from_llm(
-        #     llm=self.llm,
-        #     retriever=retriever,
-        #     question_generator=question_generator_chain,
-        # )
-
-        # return chain.invoke({'question': query})
-
-        # conversation_with_summary = ConversationChain(
-        #     prompt=prompt,
-        #     llm=self.llm,
-        #     # We set a low k=2, to only keep the last 2 interactions in memory
-        #     memory=ConversationBufferWindowMemory(memory_key='chat_history' k=2),
-        #     verbose=True
-        # )
-
-        # return conversation_with_summary.predict(input=query)
-
-        result = chain_with_memory.invoke(query)
-
-        return result
+        return chain.invoke({"question": "where did harrison work", "language": "italian"})
