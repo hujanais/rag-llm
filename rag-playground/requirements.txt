@@ -1,0 +1,11 @@
+langchain
+langchain_community
+pypdf
+faiss-cpu
+pypdf
+bs4
+python-dotenv
+openai
+langchain-openai
+gpt4all
+streamlit
