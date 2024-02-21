@@ -24,7 +24,7 @@ python3 server/app.py
 # This sample code uses html links as import.  You can update it to 
 # read local documents.
 Step 1.  Feed the content links
-curl --location 'http://127.0.01:5000/api/context' \
+curl --location 'http://127.0.0.1:5000/api/context' \
 --data  '[
 "https://hujanais.github.io", 
 "https://hujanais.github.io/edge-llm",
@@ -34,7 +34,7 @@ curl --location 'http://127.0.01:5000/api/context' \
 ]'
 
 Step 2. Query the documents with LLM
-curl --location 'http://127.0.01:5000/api/llm' \
+curl --location 'http://127.0.0.1:5000/api/llm' \
 --data  '{ "query": "Can you summarize some of the technologies mentioned?" }'
 
 deactivate # destroy virtual environment when done
@@ -52,7 +52,7 @@ To get the Flask server to correctly be hosted on Heroku, these steps are critic
 CMD  ["python3", "./server/app.py", "--host=0.0.0.0"]
 
 # The correct app.py app.run command.
-# This will allow Heroku to inject its own dynamic server.
+# This will allow Heroku to inject its own dynamic port number
 PORT  =  int(os.environ.get('PORT', 5000))
 app.run(debug=True, host='0.0.0.0', port=PORT)
 
