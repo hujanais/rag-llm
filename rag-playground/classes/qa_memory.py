@@ -1,17 +1,15 @@
-from colorama import Fore, Back, Style
-
 import os
 from collections import deque
 
 class QAMemory:
     def __init__(self, depth):
         self.depth = depth
-        self.history = deque([])
+        self.history = deque()
 
     def add(self, question, answer):
         self.history.append({
-            'Human': f'Human: {question}',
-            'AI': f'AI: {answer}'
+            'Human': f'{question}',
+            'AI': f'{answer}'
         })
 
         numOfLines = len(self.history)

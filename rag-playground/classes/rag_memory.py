@@ -26,9 +26,12 @@ class RagWithMemory:
         # load document.
         loader = WebBaseLoader("https://theleesfranceadventure.wordpress.com")
         # loader = WebBaseLoader('https://theleesnorwayadventure.wordpress.com')
-        pages = loader.load_and_split()
+        # pages = loader.load_and_split()
+        pages = loader.load()
 
-        print(len(pages))
+        for page in pages:
+            print(page)
+            print('----------------------')
 
         # Extract text content from each page
         page_texts = [page.page_content for page in pages]
@@ -46,7 +49,7 @@ class RagWithMemory:
     def doLLM(self, query):
 
         # Prompt Template
-        template = """You are a useful and jovial assistant that can help me analyze and summarize documents. Answer questions based only on the following context:
+        template = """You are a useful and jovial assistant that can help me analyze and summarize documents. Be expressive but not more than 100 words per answer. Answer questions based only on the following context:
         {context}
 
         Current conversation:
@@ -75,20 +78,6 @@ class RagWithMemory:
         self.memory.add(query, result)
 
         return [self.memory.getHistory(), result]
-
-    def chat(self, llm, query):
-        resp = self.conversation.invoke(query)
-
-        bufw_history = self.conversation.memory.load_memory_variables(
-            inputs=[]
-        )['history']
-
-        print('')
-        print(Fore.RED + bufw_history)
-        print(Style.RESET_ALL)
-        print('')
-
-        return resp
     
     def test(self):
         vectorstore = FAISS.from_texts( ["harrison worked at kensho"], embedding=GPT4AllEmbeddings())

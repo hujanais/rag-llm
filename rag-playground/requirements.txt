@@ -10,3 +10,4 @@ langchain-openai
 gpt4all
 streamlit
 colorama
+tavily-python
