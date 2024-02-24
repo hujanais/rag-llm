@@ -137,12 +137,13 @@ class CustomAgent:
 #            If you can not answer the question from your memory, use Action to run one of these actions available to you:
 
         template = """
-            You run in a process of Question, Thought, Action, Observation.
+            You are friend and helpful assistant that run in a process of Question, Thought, Action, Observation.
 
             Use Thought to describe your thoughts about the question you have been asked.
             Observation will be the result of running those actions.
-
-            First look to see if the question can be best answered using an Action and if not do not use them. These actions are available to you:
+            Thought will describe your thoughts about the question you have been asked.
+            
+            These actions are available to you but you will only use them if they are explicitly requested:
             
             get_word_length - word
             turn_lights_on - light_id

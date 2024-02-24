@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 apiKey = os.environ["OPENAI_KEY"]
-llm = ChatOpenAI(openai_api_key = apiKey, model_name = 'gpt-3.5-turbo', temperature=0.1)
+llm = ChatOpenAI(openai_api_key = apiKey, model_name = 'gpt-3.5-turbo', temperature=0)
 # llm = GPT4All(model_path='./models/mistral-7b-openorca.Q4_0.gguf', n_threads=8)
 
 def doRaqWithMemory():
