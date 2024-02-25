@@ -32,6 +32,7 @@ llm = ChatOpenAI(openai_api_key=apiKey, model_name="gpt-3.5-turbo", temperature=
 class CustomTool:
     def __init__(self):
         prompt = PromptTemplate(input_variables=["query"], template="{query}")
+
         llm_chain = LLMChain(llm=llm, prompt=prompt)
 
         llm_math = LLMMathChain(llm=llm)
@@ -41,90 +42,33 @@ class CustomTool:
             name="my_calculator",
             func=llm_math.run,
             description="Useful for when you need to answer questions about math.",
-            handle_tool_error=True
         )
 
         llm_tool = Tool(
             name="Language Model",
             func=llm_chain.run,
             description="use this tool for general purpose queries and logic",
-            handle_tool_error=True
-        )
-
-        turn_lights_on_tool = Tool(
-            name='turn_lights_on',
-            func=self.turn_lights_on,
-            description='Use this tool when you need to turns the lights on for a given lightId',
-            handle_tool_error=True
-        )
-
-        turn_lights_off_tool = Tool(
-            name='turn_lights_off',
-            func=self.turn_lights_off,
-            description='Use this tool when you need to turns the lights off for a given lightId',
-            handle_tool_error=True
         )
 
         # when giving tools to LLM, we must pass as list of tools
-        tools = [math_tool, llm_tool, turn_lights_on_tool, turn_lights_off_tool]
-        
-        template = """Answer the following questions as best you can. You have access to the following tools:
-        {tools}
+        tools = [math_tool, llm_tool, self.turn_lights_on, self.turn_lights_off]
 
-        Use the following format:
-
-        Question: the input question you must answer
-        Thought: you should always think about what to do
-        Action: the action to take, should be one of {tool_names}
-        Action Input: the input to the action
-        Observation: the result of the action
-        ... (this Thought/Action/Action Input/Observation can repeat N times)
-        Thought: I now know the final answer
-        Final Answer: the final answer to the original input question
-
-        Begin!
-
-        Question: {input}
-        Thought:{agent_scratchpad}'''
-        """
-        prompt = ChatPromptTemplate.from_template(template=template)
-
-        zero_shot_agent = create_react_agent(llm, tools, prompt)
-
-        # zero_shot_agent = (
-        #     {
-        #         "input": lambda x: x["input"],
-        #         "tool_names": lambda x: ['my_calculator', 'Language Model', 'turn_lights_on', 'turn_lights_off'],
-        #         "agent_scratchpad": lambda x: format_to_openai_tool_messages(
-        #             x["intermediate_steps"]
-        #         ),
-        #     }
-        #     | prompt
-        #     | llm_with_tools
-        #     | OpenAIToolsAgentOutputParser()
-        # )
-
-        self.agent_executor = AgentExecutor(agent=zero_shot_agent, tools=tools, verbose=True, handle_parsing_errors=True)
-
-        # self.zero_shot_agent = initialize_agent(
-        #     agent="zero-shot-react-description",
-        #     tools=tools,
-        #     llm=llm,
-        #     verbose=True,
-        #     max_iterations=3
-        # )
+        self.zero_shot_agent = initialize_agent(
+            agent="zero-shot-react-description",
+            tools=tools,
+            llm=llm,
+            verbose=True,
+            max_iterations=3,
+        )
 
         # zero_shot_agent("what is (4.5*2.1)^2.2?")
         # zero_shot_agent("Good morning")
         # zero_shot_agent("What is the capital of Norway?")
 
-    def _handle_error(self, error) -> str:
-        print('FUBAR')
-        return str(error) 
-
     @tool
     def turn_lights_on(lightId: str) -> str:
         """Use this tool when you need to turns the lights on for a given lightId"""
+        raise ToolException("The search tool1 is not available.")
         resp = {
             "lightId": lightId,
             "action": True
@@ -148,8 +92,7 @@ class CustomTool:
                 break
 
             if user_input is not None:
-                # response = self.zero_shot_agent.invoke({"input": user_input})
-                response = list(self.agent_executor.stream({"input": user_input}))
+                response = self.zero_shot_agent.invoke({"input": user_input})
                 print(response)
 
         # template = """
