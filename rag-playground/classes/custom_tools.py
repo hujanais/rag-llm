@@ -25,6 +25,8 @@ from langchain.agents import Tool
 
 from dotenv import load_dotenv
 
+# https://www.comet.com/site/blog/enhancing-langchain-agents-with-custom-tools/
+
 load_dotenv()
 apiKey = os.environ["OPENAI_KEY"]
 llm = ChatOpenAI(openai_api_key=apiKey, model_name="gpt-3.5-turbo", temperature=0)
@@ -67,52 +69,114 @@ class CustomTool:
 
         # when giving tools to LLM, we must pass as list of tools
         tools = [math_tool, llm_tool, turn_lights_on_tool, turn_lights_off_tool]
-        
-        template = """Answer the following questions as best you can. You have access to the following tools:
-        {tools}
+        llm_with_tools = llm.bind_tools(tools)
 
-        Use the following format:
+        zero_shot_template = """Answer the following questions as best you can. You have access to the following tools:
+            
+            my_calculator: Useful for when you need to answer questions about math.
+            Language Model: use this tool for general purpose queries and logic
+            turn_lights_on: Use this tool when you need to turns the lights on for a given lightId
+            turn_lights_off: Use this tool when you need to turns the lights off for a given lightId
+            
+            Use the following format:
 
-        Question: the input question you must answer
-        Thought: you should always think about what to do
-        Action: the action to take, should be one of {tool_names}
-        Action Input: the input to the action
-        Observation: the result of the action
-        ... (this Thought/Action/Action Input/Observation can repeat N times)
-        Thought: I now know the final answer
-        Final Answer: the final answer to the original input question
+            Question: the input question you must answer
+            Thought: you should always think about what to do
+            Action: the action to take, should be one of [my_calculator, Language Model, turn_lights_on, turn_lights_off]
+            Action Input: the input to the action
+            Observation: the result of the action
+            ... (this Thought/Action/Action Input/Observation can repeat N times)
+            Thought: I now know the final answer
+            Final Answer: the final answer to the original input question
 
-        Begin!
+            Begin!
+            
+            Question: {input}
+            Thought:{agent_scratchpad}')
+        """
 
-        Question: {input}
-        Thought:{agent_scratchpad}'''
+        template = """
+        Answer the following questions as best you can. You have access to the following tools:
+            
+            my_calculator: Useful for when you need to answer questions about math.
+            Language Model: use this tool for general purpose queries and logic
+            turn_lights_on: Use this tool when you need to turns the lights on for a given lightId
+            turn_lights_off: Use this tool when you need to turns the lights off for a given lightId
+            
+            Use the following format:
+
+            Question: the input question you must answer
+            Thought: you should always think about what to do
+            Action: the action to take, should be one of [my_calculator, Language Model, turn_lights_on, turn_lights_off]
+            Action Input: the input to the action
+            Observation: the result of the action
+            ... (this Thought/Action/Action Input/Observation can repeat N times)
+            Thought: I now know the final answer
+            Final Answer: the final answer to the original input question
+
+            Begin!
+            
+            Question: {input}
+            Thought:{agent_scratchpad}
         """
         prompt = ChatPromptTemplate.from_template(template=template)
 
-        zero_shot_agent = create_react_agent(llm, tools, prompt)
+        # self.zero_shot_agent = create_react_agent(llm, tools, prompt)
 
-        # zero_shot_agent = (
-        #     {
-        #         "input": lambda x: x["input"],
-        #         "tool_names": lambda x: ['my_calculator', 'Language Model', 'turn_lights_on', 'turn_lights_off'],
-        #         "agent_scratchpad": lambda x: format_to_openai_tool_messages(
-        #             x["intermediate_steps"]
-        #         ),
-        #     }
-        #     | prompt
-        #     | llm_with_tools
-        #     | OpenAIToolsAgentOutputParser()
-        # )
+        zero_shot_agent_chain = (
+            {
+                "input": lambda x: x["input"],
+                "tool_names": lambda x: ['my_calculator', 'Language Model', 'turn_lights_on', 'turn_lights_off'],
+                "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+                    x["intermediate_steps"]
+                ),
+            }
+            | prompt
+            | llm_with_tools
+            | OpenAIToolsAgentOutputParser()
+        )
 
-        self.agent_executor = AgentExecutor(agent=zero_shot_agent, tools=tools, verbose=True, handle_parsing_errors=True)
+        self.agent_executor = AgentExecutor(agent=zero_shot_agent_chain, tools=tools, verbose=True, handle_parsing_errors=True)
 
-        # self.zero_shot_agent = initialize_agent(
-        #     agent="zero-shot-react-description",
-        #     tools=tools,
-        #     llm=llm,
-        #     verbose=True,
-        #     max_iterations=3
-        # )
+        PREFIX = """
+                Answer the following questions as best you can. 
+                You have access to the following tools:
+                my_calculator: Useful for when you need to answer questions about math.
+                Language Model: use this tool for general purpose queries and logic
+                turn_lights_on: Use this tool when you need to turns the lights on for a given lightId
+                turn_lights_off: Use this tool when you need to turns the lights off for a given lightId
+            """
+
+        FORMAT_INSTRUCTIONS = """   Use the following format:
+            Question: the input question you must answer
+            Thought: you should always think about what to do
+            Action: the action to take, should be one of [my_calculator, Language Model, turn_lights_on, turn_lights_off]
+            Action Input: the input to the action
+            Observation: the result of the action
+            ... (this Thought/Action/Action Input/Observation can repeat N times)
+            Thought: I now know the final answer.
+            Final Answer: the final answer to the original input question
+        """
+
+        SUFFIX = """Begin!
+            Question: {input}
+            Thought:{agent_scratchpad}
+        """
+
+        self.zero_shot_agent = initialize_agent(
+            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+            tools=tools,
+            llm=llm,
+            verbose=True,
+            max_iterations=3,
+            # agent_kwargs={
+            #     'prefix':PREFIX,
+            #     'format_instructions': FORMAT_INSTRUCTIONS,
+            #     'suffix': SUFFIX
+            # }
+        )
+
+        # print(self.zero_shot_agent)
 
         # zero_shot_agent("what is (4.5*2.1)^2.2?")
         # zero_shot_agent("Good morning")
@@ -129,7 +193,8 @@ class CustomTool:
             "lightId": lightId,
             "action": True
         }
-        return json.dumps(resp)
+        # return json.dumps(resp)
+        return f'DONE. The {lightId} lights has been FUBAR on'
 
     @tool
     def turn_lights_off(lightId: str) -> str:
@@ -138,7 +203,8 @@ class CustomTool:
             "lightId": lightId,
             "action": False
         }
-        return json.dumps(resp)
+        return f'DONE. The {lightId} lights has been FUBAR off'
+        # return json.dumps(resp)
 
     def run(self):
         while True:
@@ -148,8 +214,8 @@ class CustomTool:
                 break
 
             if user_input is not None:
-                # response = self.zero_shot_agent.invoke({"input": user_input})
-                response = list(self.agent_executor.stream({"input": user_input}))
+                response = self.zero_shot_agent.invoke({"input": user_input})
+                # response = self.agent_executor.invoke({"input": user_input})
                 print(response)
 
         # template = """
