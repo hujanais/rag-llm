@@ -67,8 +67,15 @@ class CustomTool:
             handle_tool_error=True
         )
 
+        get_sensor_data = Tool(
+            name='get_sensor_data',
+            func=self.get_sensor_data,
+            description='Use this tool to retrieve sensor data for a given sensorId',
+            handle_tool_error=True
+        )
+
         # when giving tools to LLM, we must pass as list of tools
-        tools = [math_tool, llm_tool, turn_lights_on_tool, turn_lights_off_tool]
+        tools = [math_tool, turn_lights_on_tool, turn_lights_off_tool, get_sensor_data]
         llm_with_tools = llm.bind_tools(tools)
 
         zero_shot_template = """Answer the following questions as best you can. You have access to the following tools:
@@ -77,12 +84,13 @@ class CustomTool:
             Language Model: use this tool for general purpose queries and logic
             turn_lights_on: Use this tool when you need to turns the lights on for a given lightId
             turn_lights_off: Use this tool when you need to turns the lights off for a given lightId
+            get_sensor_data: Use this tool to retrieve sensor data for a given sensorId
             
             Use the following format:
 
             Question: the input question you must answer
             Thought: you should always think about what to do
-            Action: the action to take, should be one of [my_calculator, Language Model, turn_lights_on, turn_lights_off]
+            Action: the action to take, should be one of [my_calculator, Language Model, turn_lights_on, turn_lights_off, get_sensor_data]
             Action Input: the input to the action
             Observation: the result of the action
             ... (this Thought/Action/Action Input/Observation can repeat N times)
@@ -123,39 +131,45 @@ class CustomTool:
 
         # self.zero_shot_agent = create_react_agent(llm, tools, prompt)
 
-        zero_shot_agent_chain = (
-            {
-                "input": lambda x: x["input"],
-                "tool_names": lambda x: ['my_calculator', 'Language Model', 'turn_lights_on', 'turn_lights_off'],
-                "agent_scratchpad": lambda x: format_to_openai_tool_messages(
-                    x["intermediate_steps"]
-                ),
-            }
-            | prompt
-            | llm_with_tools
-            | OpenAIToolsAgentOutputParser()
-        )
+        # zero_shot_agent_chain = (
+        #     {
+        #         "input": lambda x: x["input"],
+        #         "tool_names": lambda x: ['my_calculator', 'Language Model', 'turn_lights_on', 'turn_lights_off'],
+        #         "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+        #             x["intermediate_steps"]
+        #         ),
+        #     }
+        #     | prompt
+        #     | llm_with_tools
+        #     | OpenAIToolsAgentOutputParser()
+        # )
 
-        self.agent_executor = AgentExecutor(agent=zero_shot_agent_chain, tools=tools, verbose=True, handle_parsing_errors=True)
+        # self.agent_executor = AgentExecutor(agent=zero_shot_agent_chain, tools=tools, verbose=True, handle_parsing_errors=True)
 
-        PREFIX = """
-                Answer the following questions as best you can. 
-                You have access to the following tools:
+        PREFIX = """You are very helpful assistant that will answer the following questions as best you can. """
+
+        FORMAT_INSTRUCTIONS = """
+            You have access to the following tools.
                 my_calculator: Useful for when you need to answer questions about math.
-                Language Model: use this tool for general purpose queries and logic
                 turn_lights_on: Use this tool when you need to turns the lights on for a given lightId
                 turn_lights_off: Use this tool when you need to turns the lights off for a given lightId
-            """
 
-        FORMAT_INSTRUCTIONS = """   Use the following format:
+            You should only use the tools only if the question is specifically about lights and arithmetic.
+
+            Use the following format:
             Question: the input question you must answer
             Thought: you should always think about what to do
-            Action: the action to take, should be one of [my_calculator, Language Model, turn_lights_on, turn_lights_off]
+            Action: the action to take, should be one of [my_calculator, turn_lights_on, turn_lights_off]
             Action Input: the input to the action
             Observation: the result of the action
             ... (this Thought/Action/Action Input/Observation can repeat N times)
             Thought: I now know the final answer.
             Final Answer: the final answer to the original input question
+        
+            Question: Why is the sky blue?
+            Thought: This question cannot be appropriately answered by any of the Tools.
+            Observable: The question cannot be answered.
+            Final Answer: Sorry, I cannot answer that question.
         """
 
         SUFFIX = """Begin!
@@ -168,12 +182,12 @@ class CustomTool:
             tools=tools,
             llm=llm,
             verbose=True,
-            max_iterations=3,
-            # agent_kwargs={
-            #     'prefix':PREFIX,
-            #     'format_instructions': FORMAT_INSTRUCTIONS,
-            #     'suffix': SUFFIX
-            # }
+            return_intermediate_steps=True,
+            agent_kwargs={
+                'prefix':PREFIX,
+                'format_instructions': FORMAT_INSTRUCTIONS,
+                'suffix': SUFFIX
+            }
         )
 
         # print(self.zero_shot_agent)
@@ -206,6 +220,17 @@ class CustomTool:
         return f'DONE. The {lightId} lights has been FUBAR off'
         # return json.dumps(resp)
 
+    @tool
+    def get_sensor_data(sensorId: str) -> str:
+        """Use this tool to retrieve sensor data for a given sensorId"""
+        sensor_data = {'temperature': 11.1, 'humidity': 45.2}
+        resp = {
+            "sensorId": sensorId,
+            "data": json.dumps(sensor_data)
+        }
+
+        return f'DONE. Here is the sensor data.  {json.dumps(resp)}'
+
     def run(self):
         while True:
             user_input = input(">> ")
@@ -216,6 +241,7 @@ class CustomTool:
             if user_input is not None:
                 response = self.zero_shot_agent.invoke({"input": user_input})
                 # response = self.agent_executor.invoke({"input": user_input})
+                # print(response['output'])
                 print(response)
 
         # template = """
