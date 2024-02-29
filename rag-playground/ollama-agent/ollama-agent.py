@@ -14,6 +14,10 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain.agents import tool
 from langchain.agents import Tool
 
+from tools.turn_lights_on import TurnLightsOnTool
+from tools.turn_lights_off import TurnLightsOffTool
+from tools.get_sensor_data import GetSensorDataTool
+
 from dotenv import load_dotenv
 
 # https://www.comet.com/site/blog/enhancing-langchain-agents-with-custom-tools/
@@ -30,29 +34,8 @@ class CustomTool:
     def __init__(self):
         prompt = PromptTemplate(input_variables=["query"], template="{query}")
 
-        turn_lights_on_tool = Tool(
-            name="turn_lights_on",
-            func=self.turn_lights_on,
-            description="Use this tool when you need to turns the lights on for a given lightId",
-            handle_tool_error=True,
-        )
-
-        turn_lights_off_tool = Tool(
-            name="turn_lights_off",
-            func=self.turn_lights_off,
-            description="Use this tool when you need to turns the lights off for a given lightId",
-            handle_tool_error=True,
-        )
-
-        get_sensor_data = Tool(
-            name="get_sensor_data",
-            func=self.get_sensor_data,
-            description="Use this tool to retrieve sensor data for a given sensorId",
-            handle_tool_error=True,
-        )
-
         # when giving tools to LLM, we must pass as list of tools
-        tools = [turn_lights_on_tool, turn_lights_off_tool, get_sensor_data]
+        tools = [TurnLightsOffTool(), TurnLightsOnTool(), GetSensorDataTool()]
 
         template = """
             You are very helpful assistant that will answer the following questions as best you can. 
@@ -106,29 +89,7 @@ class CustomTool:
     def _handle_error(self, error) -> str:
         print("FUBAR")
         return str(error)
-
-    @tool
-    def turn_lights_on(lightId: str) -> str:
-        """Use this tool when you need to turns the lights on for a given lightId"""
-        resp = {"lightId": lightId, "action": True}
-        # return json.dumps(resp)
-        return f"DONE. The {lightId} lights has been FUBAR on"
-
-    @tool
-    def turn_lights_off(lightId: str) -> str:
-        """Use this tool when you need to turns the lights off for a given lightId"""
-        resp = {"lightId": lightId, "action": False}
-        return f"DONE. The {lightId} lights has been FUBAR off"
-        # return json.dumps(resp)
-
-    @tool
-    def get_sensor_data(sensorId: str) -> str:
-        """Use this tool to retrieve sensor data for a given sensorId"""
-        sensor_data = {"temperature": 11.1, "humidity": 45.2}
-        resp = {"sensorId": sensorId, "data": json.dumps(sensor_data)}
-
-        return f"DONE. Here is the sensor data.  {json.dumps(resp)}"
-
+    
     def run(self):
         while True:
             user_input = input(">> ")
