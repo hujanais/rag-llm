@@ -23,7 +23,7 @@ const ChatComponent = () => {
         }));
 
         return (() => subscriptions.unsubscribe())
-    }, []);
+    }, [llm.onNewMessage]);
 
     const handleNewQuery = (query: string) => {
         setAnswer('');

@@ -160,3 +160,6 @@ cython_debug/
 #.idea/
 faiss_index/
 *.gguf
+
+# Misc
+.DS_Store

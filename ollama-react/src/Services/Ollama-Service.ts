@@ -89,6 +89,9 @@ export class OllamaService {
                 if (jsonObj.response) {
                     this.newMessage$.next(jsonObj.response);
                 }
+
+                // sleep a short while to release the thread.
+                await new Promise(resolve => setTimeout(resolve, 250));
             }
         }
         catch (err: any) {

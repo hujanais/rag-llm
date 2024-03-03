@@ -22,7 +22,7 @@ const ModelSelectComponent = () => {
                     value={model}
                     label="Model"
                     onChange={handleModelChange}>
-                    <MenuItem value={'Gemma:2b'}>Gemma:2b</MenuItem>
+                    <MenuItem value={'gemma:2b'}>gemma:2b</MenuItem>
                 </Select>
             </FormControl>
             <IconButton aria-label="delete">
