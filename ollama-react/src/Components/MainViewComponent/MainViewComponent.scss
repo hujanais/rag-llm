@@ -1,0 +1,9 @@
+.mainview-container {
+    display: grid;
+    height: 100%;
+    grid-template-rows: auto 1fr;
+    margin: 2rem;
+    background-color: #212121;
+    padding: 1rem;
+    gap: 1rem;
+}
