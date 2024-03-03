@@ -11,3 +11,4 @@ langchain-openai
 nest_asyncio
 gpt4all
 flask
+streamlit

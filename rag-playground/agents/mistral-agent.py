@@ -19,29 +19,44 @@ from langchain.agents.output_parsers import (
 )
 from langchain.tools.render import render_text_description_and_args
 
+from langchain_mistralai.chat_models import ChatMistralAI
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from tools.turn_lights_on import TurnLightsOnTool
 from tools.turn_lights_off import TurnLightsOffTool
 from tools.get_sensor_data import GetSensorDataTool
-
+from tools.llm_chain_tool import CatchAllChainTool
 from dotenv import load_dotenv
+
+from langchain.globals import set_debug
+# set_debug(True)
 
 # https://www.comet.com/site/blog/enhancing-langchain-agents-with-custom-tools/
 # https://github.com/langchain-ai/langchain/blob/master/libs/langchain/langchain/agents/react/agent.py
 
 load_dotenv()
-apiKey = os.environ["OPENAI_KEY"]
-llm = ChatOpenAI(openai_api_key=apiKey, model_name="gpt-3.5-turbo", temperature=0)
+apiKey = os.environ["MISTRAL_API_KEY"]
+llm = ChatMistralAI(apiKey=apiKey, model='mistral-small', temperature=0, max_tokens=128)
+
+# apiKey = os.environ["OPENAI_KEY"]
+# llm = ChatOpenAI(openai_api_key=apiKey, model_name="gpt-3.5-turbo", temperature=0)
 
 # Ollama
-# llm = Ollama(base_url='http://localhost:11434', model='llama2')
+# llm = Ollama(base_url='http://localhost:11434', model='mistral')
 
 
 class CustomTool:
     def __init__(self):
+        # prompt = ChatPromptTemplate.from_template("Tell me a joke about {topic}")
+        # chain = prompt | llm
+        # response = chain.invoke({"topic": "Space"})
+        # print(response.content)
+        # pass
+
         prompt = PromptTemplate(input_variables=["query"], template="{query}")
 
         # when giving tools to LLM, we must pass as list of tools
-        tools = [TurnLightsOffTool(), TurnLightsOnTool(), GetSensorDataTool()]
+        tools = [TurnLightsOffTool(), TurnLightsOnTool(), GetSensorDataTool(), CatchAllChainTool()]
 
         tool_list = (
             render_text_description_and_args(tools)
@@ -50,9 +65,8 @@ class CustomTool:
         )
         tool_names = [t.name for t in tools]
 
-        template = f"""Answer the following questions as best you can.
-            You can answer directly if the user is greeting you or similar.
-            Otherise, you have access to the following tools:
+        template = f"""You are a stupid assistant that cannot answer any questions by yourself and can only delegate your questions to available tools only.
+            You only have access to the following tools:
 
             {tool_list}
 
@@ -77,8 +91,8 @@ class CustomTool:
             Action:```
             $JSON_BLOB
             ```
-            Observation: the result of the action... 
-            (this Thought/Action/Observation can repeat N times)
+            Observation: the result of the action...
+            ... (this Thought/Action/Action Input/Observation can repeat N times)
             Thought: I now know the final answer
             Final Answer: the final answer to the original input question
 

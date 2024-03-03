@@ -11,3 +11,4 @@ gpt4all
 streamlit
 colorama
 wikipedia
+langchain-mistralai

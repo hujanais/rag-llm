@@ -7,21 +7,23 @@ from langchain.callbacks.manager import (
 )
 
 class RequestBody(BaseModel):
-    lightId: str = Field(description='the id of the lightId')
+    location: str = Field(description='the location of the light')
 
-class TurnLightsOffTool(BaseTool):
-    name = "turn_lights_off"
-    description = "Use when you need to turns the lights off for a given lightId"
+class TurnLightsOnTool(BaseTool):
+    name = "turn_lights_on"
+    description = "Use when you need to turns the lights 'ON' for a given location"
     args_schema: Type[BaseModel] = RequestBody
+    return_direct = True
 
     def _run(
         self, 
-        lightId: str, 
+        location: str, 
         run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> str:
         """Use the tool."""
-        resp = {"lightId": lightId, "action": False}
-        return f"DONE. The {lightId} lights has been FUBAR off"
+        print('!!!!ENTERED!!!!')
+        resp = {"location": location, "action": False}
+        return f"OK. The {location} lights has been turned on"
 
     async def _arun(
         self, query: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
