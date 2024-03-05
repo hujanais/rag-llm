@@ -1,5 +1,16 @@
 import { Observable, Subject } from "rxjs";
 
+export type OllamaModel = {
+    model: string;
+    name: string;
+    size: number;
+    details: {parameter_size: string}
+}
+
+export type OllamaModels = {
+    models: OllamaModel[];
+}
+
 // {"model":"gemma:2b","created_at":"2024-03-03T03:45:39.829495263Z","response":"2","done":false}
 export type IOllamaResponse = {
     model: string,
@@ -29,7 +40,7 @@ export class OllamaService {
     private newStatistics$: Subject<IOllamaStatistics> = new Subject<IOllamaStatistics>();
     private static _instance: OllamaService;
 
-    private constructor() {}
+    private constructor() { }
 
     public static get Instance(): OllamaService {
         if (!this._instance) {
@@ -105,5 +116,27 @@ export class OllamaService {
 
     public get onNewMessage(): Observable<string> {
         return this.newMessage$.asObservable();
+    }
+
+    public async getModels(): Promise<OllamaModel[]> {
+        try {
+            const resp = await fetch('/api/tags', {
+                headers: {
+                'Content-Type': 'application/json' } 
+            });
+            const models = await resp.json() as OllamaModels;
+            models.models.map(v => {
+                v.size /= 1e9;
+                v.size = parseFloat(v.size.toFixed(2))
+                return v;
+            })
+
+            console.log(models.models);
+            return models.models;
+        }
+        catch (err) {
+            console.log(err);
+            return [];
+        }
     }
 }
