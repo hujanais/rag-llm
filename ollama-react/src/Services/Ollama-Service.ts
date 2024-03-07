@@ -1,4 +1,5 @@
 import { Observable, Subject } from "rxjs";
+import { Exception } from "sass";
 
 export type OllamaModel = {
     model: string;
@@ -42,6 +43,8 @@ export class OllamaService {
 
     private constructor() { }
 
+    public selectedModel: OllamaModel | undefined;
+
     public static get Instance(): OllamaService {
         if (!this._instance) {
             this._instance = new OllamaService();
@@ -52,8 +55,10 @@ export class OllamaService {
 
     public async sendQuery(query: string) {
         try {
+            if (!this.selectedModel) throw new Error('no selected model');
+
             const prompt = { role: 'User', content: query };
-            const bodyRequest = { model: 'gemma:2b', prompt: JSON.stringify(prompt), streaming: true };
+            const bodyRequest = { model: this.toModel(this.selectedModel), prompt: JSON.stringify(prompt), streaming: true };
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 body: JSON.stringify(bodyRequest),
@@ -138,5 +143,19 @@ export class OllamaService {
             console.log(err);
             return [];
         }
+    }
+
+    private toModel(model: OllamaModel): string {
+        if (model.name.includes('gemma')) {
+            return 'gemma:2b';
+        } else if (model.name.includes('tinyllama')) {
+            return 'tinyllama';
+        } else if (model.name.includes('dolphin-phi')) {
+            return 'dophin-phi'
+        } else if (model.name.includes('phi')) {
+            return 'phi'
+        }
+
+        throw new Error ('invalid model');
     }
 }

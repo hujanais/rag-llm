@@ -21,6 +21,7 @@ const ModelSelectComponent = () => {
             if (_models.length > 0) {
                 setSelectedModelKey(_models[0].model);
                 setSelectedModel(models[0]);
+                llm.selectedModel = models[0];
             }
         }
 
@@ -30,7 +31,9 @@ const ModelSelectComponent = () => {
     const handleModelChange = (event: SelectChangeEvent) => {
         const modelKey = event.target.value as string;
         setSelectedModelKey(modelKey);
-        setSelectedModel(models.find(m => m.model === modelKey));
+        const sm = models.find(m => m.model === modelKey);
+        setSelectedModel(sm);
+        llm.selectedModel = sm;
     }
 
     return (
